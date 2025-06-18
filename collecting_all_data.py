@@ -5,10 +5,18 @@ from selenium.webdriver.common.by import By
 import undetected_chromedriver as uc
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from dotenv import load_dotenv
 import os
+
+
+load_dotenv()
+LOGIN = os.getenv("LOGIN")
+PASSWORD = os.getenv("PASSWORD")
+AUTHORIZATION = os.getenv("AUTHORIZATION")
+
+
 output_dir = './sftp/data'
 os.makedirs(output_dir, exist_ok=True)
-
 
 
 def get_fresh_cookies():
@@ -26,8 +34,8 @@ def get_fresh_cookies():
     wait.until(EC.visibility_of_element_located((By.ID, "username")))
 
     print("Enter your login and password...")
-    driver.find_element(By.ID, "username").send_keys('lena22222')
-    driver.find_element(By.ID, "password").send_keys('3132607476lenaL!')
+    driver.find_element(By.ID, "username").send_keys(LOGIN)
+    driver.find_element(By.ID, "password").send_keys(PASSWORD)
 
     print("Click the login button...")
     driver.find_element(By.CSS_SELECTOR, "button.submit").click()
@@ -45,11 +53,10 @@ def get_fresh_cookies():
     return cookies_dict
 
 
-
 headers = {
     'accept': '*/*',
     'accept-language': 'en-US,en;q=0.9',
-    'authorization': 'bf8282b6-c47b-4d03-b1e1-64c9b685aa02',
+    'authorization': AUTHORIZATION,
     'content-type': 'application/json',
     'origin': 'https://biz.sosmt.gov',
     'priority': 'u=1, i',
