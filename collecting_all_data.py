@@ -7,6 +7,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from dotenv import load_dotenv
 import os
+from datetime import datetime
 
 
 load_dotenv()
@@ -105,10 +106,14 @@ intervals = [
 ]
 
 states = [
-    "Arizona",
-    "Arkansas",
-    "California"
+    "Arizona"
+
 ]
+
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+filename = os.path.join(output_dir, f'all_data_{timestamp}.ndjson')
+
+
 
 for state in states:
     print(f"\n============================\nProcessing state: {state}\n============================")
@@ -133,12 +138,13 @@ for state in states:
             rows = data.get("rows", {})
 
             if rows:
-                filename = os.path.join(output_dir, f'{state}_{start[:10]}_{end[:10]}.ndjson')
-                with open(filename, 'w', encoding='utf-8') as f:
+                with open(filename, 'a', encoding='utf-8') as f:
                     for item in rows.values():
+                        item["STATE"] = state
                         json.dump(item, f, ensure_ascii=False)
                         f.write('\n')
-                print(f"Saved NDJSON: {filename}")
+                print(f"Appended data to {filename}")
+
             else:
                 print(f"No data for period {start[:10]} to {end[:10]}")
 
