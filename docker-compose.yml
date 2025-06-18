@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  sftp:
+    image: atmoz/sftp
+    container_name: sftp_server
+    ports:
+      - "2222:22"
+    volumes:
+      - ./sftp/data:/upload
+    command: user:pass:1001
