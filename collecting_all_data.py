@@ -8,12 +8,17 @@ from selenium.webdriver.support import expected_conditions as EC
 from dotenv import load_dotenv
 import os
 from datetime import datetime
+import paramiko
 
 
 load_dotenv()
 LOGIN = os.getenv("LOGIN")
 PASSWORD = os.getenv("PASSWORD")
 AUTHORIZATION = os.getenv("AUTHORIZATION")
+SFTP_HOST = os.getenv("SFTP_HOST")
+SFTP_PORT = int(os.getenv("SFTP_PORT"))
+SFTP_USER = os.getenv("SFTP_USER")
+SFTP_PASSWORD = os.getenv("SFTP_PASSWORD")
 
 
 output_dir = './sftp/data'
@@ -106,13 +111,33 @@ intervals = [
 ]
 
 states = [
-    "Arizona"
-
+    "Arizona", "Alaska"
 ]
 
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-filename = os.path.join(output_dir, f'all_data_{timestamp}.ndjson')
+filename_only = f'all_data_{timestamp}.ndjson'
 
+
+def upload_ndjson_to_sftp(content: str, filename: str):
+    transport = paramiko.Transport((SFTP_HOST, SFTP_PORT))
+    transport.connect(username=SFTP_USER, password=SFTP_PASSWORD)
+    sftp = paramiko.SFTPClient.from_transport(transport)
+
+    remote_path = f"temporary_data/{filename}"
+
+    try:
+        try:
+            sftp.stat(remote_path)
+        except FileNotFoundError:
+            with sftp.open(remote_path, 'w') as f:
+                f.write("")
+
+        with sftp.open(remote_path, "a") as remote_file:
+            remote_file.write(content)
+
+    finally:
+        sftp.close()
+        transport.close()
 
 
 for state in states:
@@ -138,12 +163,14 @@ for state in states:
             rows = data.get("rows", {})
 
             if rows:
-                with open(filename, 'a', encoding='utf-8') as f:
-                    for item in rows.values():
-                        item["STATE"] = state
-                        json.dump(item, f, ensure_ascii=False)
-                        f.write('\n')
-                print(f"Appended data to {filename}")
+                ndjson_buffer = ""
+                for item in rows.values():
+                    item["STATE"] = state
+                    ndjson_buffer += json.dumps(item, ensure_ascii=False) + "\n"
+
+                upload_ndjson_to_sftp(ndjson_buffer, filename_only)
+                print(f"Uploaded data to SFTP as all_data_{timestamp}.ndjson")
+
 
             else:
                 print(f"No data for period {start[:10]} to {end[:10]}")
