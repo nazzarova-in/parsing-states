@@ -62,16 +62,16 @@ def get_fresh_cookies():
 headers = {
     'accept': '*/*',
     'accept-language': 'en-US,en;q=0.9',
-    'authorization': AUTHORIZATION,
+    'authorization': 'd4882ecc-c552-4384-81a1-982cd5092976',
     'content-type': 'application/json',
     'origin': 'https://biz.sosmt.gov',
     'priority': 'u=1, i',
     'referer': 'https://biz.sosmt.gov/search/business',
-    'sec-ch-ua': '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+    'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
     'sec-ch-ua-arch': '"x86"',
     'sec-ch-ua-bitness': '"64"',
-    'sec-ch-ua-full-version': '"137.0.7151.104"',
-    'sec-ch-ua-full-version-list': '"Google Chrome";v="137.0.7151.104", "Chromium";v="137.0.7151.104", "Not/A)Brand";v="24.0.0.0"',
+    'sec-ch-ua-full-version': '"138.0.7204.50"',
+    'sec-ch-ua-full-version-list': '"Not)A;Brand";v="8.0.0.0", "Chromium";v="138.0.7204.50", "Google Chrome";v="138.0.7204.50"',
     'sec-ch-ua-mobile': '?0',
     'sec-ch-ua-model': '""',
     'sec-ch-ua-platform': '"Windows"',
@@ -79,7 +79,7 @@ headers = {
     'sec-fetch-dest': 'empty',
     'sec-fetch-mode': 'cors',
     'sec-fetch-site': 'same-origin',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
 }
 
 json_data = {
@@ -117,8 +117,12 @@ states = [
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 filename_only = f'all_data_{timestamp}.ndjson'
 
+MAX_LINES_PER_FILE = 30
+line_counter = 0
+has_written_data = False
 
-def upload_ndjson_to_sftp(content: str, filename: str):
+
+def upload_ndjson_to_sftp(content: str, filename: str, mode='a'):
     transport = paramiko.Transport((SFTP_HOST, SFTP_PORT))
     transport.connect(username=SFTP_USER, password=SFTP_PASSWORD)
     sftp = paramiko.SFTPClient.from_transport(transport)
@@ -126,15 +130,32 @@ def upload_ndjson_to_sftp(content: str, filename: str):
     remote_path = f"temporary_data/{filename}"
 
     try:
-        try:
-            sftp.stat(remote_path)
-        except FileNotFoundError:
-            with sftp.open(remote_path, 'w') as f:
-                f.write("")
-
-        with sftp.open(remote_path, "a") as remote_file:
+        with sftp.open(remote_path, mode) as remote_file:
             remote_file.write(content)
+    finally:
+        sftp.close()
+        transport.close()
 
+
+def move_file_to_production(filename):
+    transport = paramiko.Transport((SFTP_HOST, SFTP_PORT))
+    transport.connect(username=SFTP_USER, password=SFTP_PASSWORD)
+    sftp = paramiko.SFTPClient.from_transport(transport)
+
+    try:
+
+        try:
+            sftp.stat("production")
+            print(" 'production' folder already exists.")
+        except FileNotFoundError:
+            print(" 'production' folder not found. Creating it...")
+            sftp.mkdir("production")
+
+
+        sftp.rename(f"temporary_data/{filename}", f"production/{filename}")
+        print(f"Successfully moved {filename} to the 'production/' folder.")
+    except Exception as e:
+        print(f"Error while moving file to 'production': {e}")
     finally:
         sftp.close()
         transport.close()
@@ -163,13 +184,41 @@ for state in states:
             rows = data.get("rows", {})
 
             if rows:
-                ndjson_buffer = ""
-                for item in rows.values():
-                    item["STATE"] = state
-                    ndjson_buffer += json.dumps(item, ensure_ascii=False) + "\n"
+                rows_list = list(rows.values())
+                total_rows = len(rows_list)
+                current_index = 0
 
-                upload_ndjson_to_sftp(ndjson_buffer, filename_only)
-                print(f"Uploaded data to SFTP as all_data_{timestamp}.ndjson")
+                while current_index < total_rows:
+                    remaining_space = MAX_LINES_PER_FILE - line_counter
+                    batch = rows_list[current_index:current_index + remaining_space]
+
+                    ndjson_buffer = ""
+                    for item in batch:
+                        item["STATE"] = state
+                        ndjson_buffer += json.dumps(item, ensure_ascii=False) + "\n"
+
+                    mode = 'w' if line_counter == 0 else 'a'
+                    upload_ndjson_to_sftp(ndjson_buffer, filename_only, mode=mode)
+                    print(f"Uploaded batch of {len(batch)} rows to {filename_only}")
+
+                    line_counter += len(batch)
+                    has_written_data = True
+                    current_index += remaining_space
+
+                    if line_counter >= MAX_LINES_PER_FILE:
+                        print("File limit reached, moving to production...")
+                        move_file_to_production(filename_only)
+
+                        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                        filename_only = f'all_data_{timestamp}.ndjson'
+                        line_counter = 0
+                        has_written_data = False
+
+
+                else:
+                        print("No data written. File will not be moved.")
+                        print("Stopping script.")
+
 
 
             else:
