@@ -6,4 +6,4 @@ services:
     container_name: sftp_server
     ports:
       - "2222:22"
-    command: user:pass:::temporary_data
+    command: user:pass:::temporary_data,production
