@@ -10,6 +10,9 @@ import os
 from datetime import datetime
 import paramiko
 
+from progress import save_progress, load_progress, clear_progress
+
+
 
 load_dotenv()
 LOGIN = os.getenv("LOGIN")
@@ -110,14 +113,13 @@ intervals = [
     ('2020-01-01T00:00:00', '2025-06-17T23:59:59'),
 ]
 
-states = [
-    "Arizona", "Alaska"
-]
+states = [ "Alabama","Alaska" ]
+
 
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 filename_only = f'all_data_{timestamp}.ndjson'
 
-MAX_LINES_PER_FILE = 30
+MAX_LINES_PER_FILE = 300
 line_counter = 0
 has_written_data = False
 
@@ -160,15 +162,34 @@ def move_file_to_production(filename):
         sftp.close()
         transport.close()
 
+progress = load_progress()
+if progress:
+    state_start = progress["state_index"]
+    interval_start = progress["interval_index"]
+    filename_only = progress["filename_only"]
+    line_counter = progress["line_counter"]
+    print(f"Resuming from state index {state_start}, interval index {interval_start}")
+else:
+    state_start = 0
+    interval_start = 0
 
-for state in states:
-    print(f"\n============================\nProcessing state: {state}\n============================")
+for s_idx, state in enumerate(states):
+    if s_idx < state_start:
+        continue
+
+
+
     cookies = get_fresh_cookies()
     json_data['STATE'] = state
 
-    for start, end in intervals:
-        json_data['FILING_DATE']['start'] = start
-        json_data['FILING_DATE']['end'] = end
+    interval_start_idx = interval_start if s_idx == state_start else 0
+
+    for i_idx, (start, end) in enumerate(intervals):
+        if i_idx < interval_start_idx:
+            continue
+
+        json_data["FILING_DATE"]["start"] = start
+        json_data["FILING_DATE"]["end"] = end
 
         response = requests.post(
             'https://biz.sosmt.gov/api/Records/businesssearch',
@@ -220,10 +241,14 @@ for state in states:
                         print("Stopping script.")
 
 
-
             else:
                 print(f"No data for period {start[:10]} to {end[:10]}")
 
+            if i_idx + 1 < len(intervals):
+                save_progress(s_idx, i_idx + 1, filename_only, line_counter)
+            else:
+                save_progress(s_idx + 1, 0, filename_only, line_counter)
+            print(f"Progress saved: state {s_idx}, interval {i_idx}")
 
             print("Pausing 20 seconds ...")
             time.sleep(20)
@@ -238,4 +263,7 @@ for state in states:
 
     print(f"Finished state {state}. Sleeping for 5 minutes before next state...")
     time.sleep(300)
+
+clear_progress()
+print("Progress cleared — all data processed successfully.")
 
