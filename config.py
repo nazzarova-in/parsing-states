@@ -1,0 +1,41 @@
+HEADERS = {
+    'accept': '*/*',
+    'accept-language': 'en-US,en;q=0.9',
+    'authorization': '',
+    'content-type': 'application/json',
+    'origin': 'https://biz.sosmt.gov',
+    'priority': 'u=1, i',
+    'referer': 'https://biz.sosmt.gov/search/business',
+    'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+    'sec-ch-ua-arch': '"x86"',
+    'sec-ch-ua-bitness': '"64"',
+    'sec-ch-ua-full-version': '"138.0.7204.50"',
+    'sec-ch-ua-full-version-list': '"Not)A;Brand";v="8.0.0.0", "Chromium";v="138.0.7204.50", "Google Chrome";v="138.0.7204.50"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-model': '""',
+    'sec-ch-ua-platform': '"Windows"',
+    'sec-ch-ua-platform-version': '"10.0.0"',
+    'sec-fetch-dest': 'empty',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-site': 'same-origin',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+}
+
+JSON_DATA_TEMPLATE = {
+    'SEARCH_VALUE': '',
+    'QUERY_TYPE_ID': 1010,
+    'FILING_TYPE_ID': '0',
+    'FILING_SUBTYPE_ID': '0',
+    'STATUS_ID': '0',
+    'STATE': 'Alabama',
+    'COUNTY': '',
+    'CRA_SEARCH_YN': False,
+    'FILING_DATE': {
+        'start': '',
+        'end': '',
+    },
+    'EXPIRATION_DATE': {
+        'start': None,
+        'end': None,
+    },
+}
