@@ -1,5 +1,5 @@
 states = [
-    "Alabama", "Alaska", "Arizona", "Arkansas", "California"
+    "Alabama", "Alaska", "Arizona", "Arkansas", "California",
     "Colorado", "Connecticut", "Delaware", "District Of Columbia", "Florida",
     "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana",
     "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine",
