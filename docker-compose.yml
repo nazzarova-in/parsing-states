@@ -7,3 +7,9 @@ services:
     ports:
       - "2222:22"
     command: user:pass:::temporary_data,production
+
+  redis:
+    image: redis
+    container_name: redis_server
+    ports:
+      - "6379:6379"
