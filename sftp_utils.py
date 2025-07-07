@@ -10,11 +10,9 @@ SFTP_USER = os.getenv("SFTP_USER")
 SFTP_PASSWORD = os.getenv("SFTP_PASSWORD")
 
 class SFTPBufferedUploader:
-    def __init__(self, filename, buffer_size=100):
+    def __init__(self, filename):
         self.filename = filename
         self.remote_path = f"temporary_data/{filename}"
-        self.buffer_size = buffer_size
-        self.buffer = []
         self.transport = None
         self.sftp = None
         self.remote_file = None
@@ -26,25 +24,18 @@ class SFTPBufferedUploader:
         self.remote_file = self.sftp.open(self.remote_path, "a")
 
     def write(self, content: str):
-        self.buffer.append(content)
-        if len(self.buffer) >= self.buffer_size:
-            self.flush()
-
-    def flush(self):
-        if not self.remote_file:
-            return
-        self.remote_file.write("".join(self.buffer))
-        self.buffer = []
+        if self.remote_file:
+            self.remote_file.write(content)
+            self.remote_file.flush()
 
     def close(self):
-        if self.buffer:
-            self.flush()
         if self.remote_file:
             self.remote_file.close()
         if self.sftp:
             self.sftp.close()
         if self.transport:
             self.transport.close()
+
 
     def count_lines_remote(self):
         try:
