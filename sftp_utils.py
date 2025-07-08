@@ -26,7 +26,7 @@ class SFTPBufferedUploader:
     def write(self, content: str):
         if self.remote_file:
             self.remote_file.write(content)
-            self.remote_file.flush()
+
 
     def close(self):
         if self.remote_file:
