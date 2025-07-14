@@ -12,10 +12,8 @@ load_dotenv()
 
 LOGIN = os.getenv("LOGIN")
 PASSWORD = os.getenv("PASSWORD")
-AUTHORIZATION = os.getenv("AUTHORIZATION")
 
 headers = HEADERS.copy()
-headers["authorization"] = AUTHORIZATION
 
 MAX_LINES = 10000
 
