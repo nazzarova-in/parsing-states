@@ -1,5 +1,5 @@
 import time
-from cookies import get_fresh_cookies
+from cookies import get_fresh_cookies_and_token
 from intervals import intervals
 from states import states
 from request_utils import fetch_data, handle_error
@@ -29,7 +29,13 @@ def process_intervals(state, s_idx, interval_start, filename, line_counter, head
 
 def process_states(state_start, interval_start, filename, line_counter, headers, uploader, login, password, json_template):
     for s_idx, state in enumerate(states[state_start:], start=state_start):
-        cookies = get_fresh_cookies(login, password)
+
+        cookies, token = get_fresh_cookies_and_token(login, password)
+
+        current_headers = headers.copy()
+        current_headers['authorization'] = token
+
+
         print(f"Processing state {state} (index {s_idx})")
 
         filename, line_counter, uploader = process_intervals(
