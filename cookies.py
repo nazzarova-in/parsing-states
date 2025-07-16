@@ -1,3 +1,4 @@
+import json
 import time
 from selenium.webdriver.common.by import By
 import undetected_chromedriver as uc
@@ -6,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from requests.cookies import RequestsCookieJar
 
 
-def get_fresh_cookies(login: str, password: str):
+def get_fresh_cookies_and_token(login: str, password: str):
   options = uc.ChromeOptions()
 
   driver = uc.Chrome(options=options)
@@ -30,12 +31,18 @@ def get_fresh_cookies(login: str, password: str):
 
   time.sleep(7)
 
+  auth_data_raw = driver.execute_script("return window.localStorage.getItem('WEB_USER_AUTHENTICATION');")
+  auth_data = json.loads(auth_data_raw)
+  authorization_token = auth_data.get("ID")
+  print("Authorization token:", authorization_token)
+
+
   print("Let's go to the API URL to get the final cookies...")
   driver.get("https://biz.sosmt.gov/api/Records/businesssearch")
   time.sleep(10)
 
   selenium_cookies = driver.get_cookies()
-  # print(selenium_cookies)
+  print(selenium_cookies)
   driver.quit()
 
   jar = RequestsCookieJar()
@@ -49,6 +56,6 @@ def get_fresh_cookies(login: str, password: str):
       rest={'HttpOnly': cookie.get('httpOnly', False)},
       expires=cookie.get('expiry')
     )
-    # print(jar)
+    print(jar)
 
-  return jar
+  return jar, authorization_token
